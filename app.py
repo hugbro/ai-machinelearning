@@ -3,14 +3,16 @@ import numpy
 
 class App:
     def __init__(self, strategy=None, dataset=None):
-        self.dataset = dataset or Dataset('pais.csv', 'latin1')
+        self.dataset = dataset or Dataset('mushrooms.csv', 'utf-8')
         self.strategy = strategy or KNearestNeighborsStrategy()
 
     def run(self):
-        features = self.dataset.get_features('Qtd Créd. Emit AcInt', 'Ano')
-        target = self.dataset.get_target('Países Acordantes')
+        features = self.dataset.get_features('cap-shape', 'cap-surface', 'cap-color', 'bruises', 'odor', 'gill-attachment', 'gill-spacing', 'gill-size', 'gill-color', 'stalk-shape', 'stalk-root', 'stalk-surface-above-ring', 'stalk-surface-below-ring', 'stalk-color-above-ring', 'stalk-color-below-ring', 'veil-type', 'veil-color', 'ring-number', 'ring-type', 'spore-print-color', 'population', 'habitat')
+        target = self.dataset.get_target('class')
 
-        test_sample = numpy.array([[195, 2013]])
+        from sklearn import preprocessing
+        le = preprocessing.LabelEncoder()
+        test_sample = numpy.array([le.fit_transform(['x','s','y','t','a','f','c','b','k','e','c','s','s','w','w','p','w','o','p','n','n','g'])])
 
         self.strategy.execute(features, target, test_sample)
 
@@ -31,7 +33,10 @@ class Dataset:
         ).T
 
     def _get_key_values(self, key):
-        return self.content.pop(key).values
+        from sklearn import preprocessing
+        le = preprocessing.LabelEncoder()
+        return le.fit_transform(self.content.pop(key).values)
+        
 
 
 class KNearestNeighborsStrategy:
