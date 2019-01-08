@@ -1,26 +1,55 @@
 import pandas
 import numpy
+from strategies import KNearestNeighborsStrategy, LinearSVCStrategy
+
+
 
 class App:
-    def __init__(self, strategy=None, dataset=None):
+    def __init__(self, dataset=None):
         self.dataset = dataset or Dataset('mushrooms.csv', 'utf-8')
-        self.strategy = strategy or KNearestNeighborsStrategy()
+        self.linear_svc_strategy = LinearSVCStrategy()
+        self.knn_strategy = KNearestNeighborsStrategy()
 
     def run(self):
-        features = self.dataset.get_features('cap-shape', 'cap-surface', 'cap-color', 'bruises', 'odor', 'gill-attachment', 'gill-spacing', 'gill-size', 'gill-color', 'stalk-shape', 'stalk-root', 'stalk-surface-above-ring', 'stalk-surface-below-ring', 'stalk-color-above-ring', 'stalk-color-below-ring', 'veil-type', 'veil-color', 'ring-number', 'ring-type', 'spore-print-color', 'population', 'habitat')
+
+        feature_names = ['stalk-surface-below-ring', 'stalk-color-above-ring',
+                         'stalk-color-below-ring', 'veil-type', 'veil-color',
+                         'ring-number', 'ring-type', 'spore-print-color',
+                         'population', 'habitat']
+
+        sample1 = ['s','w','w','p','w','o','p','n','n','g']
+
+        features = self.dataset.get_features(*feature_names)
         target = self.dataset.get_target('class')
 
-        from sklearn import preprocessing
-        le = preprocessing.LabelEncoder()
-        test_sample = numpy.array([le.fit_transform(['x','s','y','t','a','f','c','b','k','e','c','s','s','w','w','p','w','o','p','n','n','g'])])
+        test_sample = self.dataset.serialize_sample(sample1)
 
-        self.strategy.execute(features, target, test_sample)
+        knn_prediction = self.knn_strategy.execute(
+            features,
+            target,
+            test_sample=test_sample
+        )
+
+        linear_svc_prediction = self.linear_svc_strategy.execute(
+            features,
+            target,
+            test_sample=test_sample
+        )
+
+        for feature, sample in zip(feature_names, sample1):
+            print(f'{feature}: {sample}')
+
+        print("KNN Prediction Result: {}".format(True if knn_prediction else False))
+
+        print("Linear SVC Prediction Result: {}". format(False if linear_svc_prediction else True))
 
 
+from sklearn import preprocessing
 class Dataset:
     def __init__(self, filename, encoding):
         try:
             self.content = pandas.read_csv(filename, encoding=encoding)
+            self.service = preprocessing.LabelEncoder()
         except TypeError:
             print('Filename or encoding invalid!')
 
@@ -33,25 +62,10 @@ class Dataset:
         ).T
 
     def _get_key_values(self, key):
-        from sklearn import preprocessing
-        le = preprocessing.LabelEncoder()
-        return le.fit_transform(self.content.pop(key).values)
-        
+        return self.service.fit_transform(self.content.pop(key).values)
 
-
-class KNearestNeighborsStrategy:
-    def execute(self, features, target, test_sample=None):
-        from sklearn.model_selection import train_test_split
-        x_train, x_test, y_train, y_test = train_test_split(features, target)
-
-        from sklearn.neighbors import KNeighborsClassifier
-        knn = KNeighborsClassifier(n_neighbors=5)
-        knn.fit(x_train, y_train)
-
-        if test_sample.any():
-            print(f'{knn.predict(test_sample)[0]}')
-
-        print(f'Prediction Score: {round(knn.score(x_test, y_test) * 100, 2)}%')
+    def serialize_sample(self, sample):
+        return numpy.array([self.service.fit_transform(sample)])
 
 
 app = App()
